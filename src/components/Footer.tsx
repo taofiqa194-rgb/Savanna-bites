@@ -1,5 +1,6 @@
 import React from 'react';
 import { useRestaurant } from '../context/RestaurantContext';
+import { PWAInstallButton } from './PWAInstallButton';
 import {
   UtensilsCrossed,
   Phone,
@@ -45,7 +46,7 @@ export const Footer: React.FC = () => {
 
             <p className="text-xs text-zinc-400 leading-relaxed">
               Experience authentic Nigerian feasts and refined continental cuisines crafted with
-              firewood smoke, homegrown spices, and genuine Lagos hospitality.
+              firewood smoke, homegrown spices, and warm Ilorin hospitality.
             </p>
 
             {/* Social Links */}
@@ -119,6 +120,9 @@ export const Footer: React.FC = () => {
                 >
                   Contact & Location
                 </button>
+              </li>
+              <li>
+                <PWAInstallButton variant="link" />
               </li>
               <li>
                 <button
