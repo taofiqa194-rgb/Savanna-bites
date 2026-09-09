@@ -1,0 +1,415 @@
+{
+  "entities": {
+    "MenuItem": {
+      "title": "MenuItem",
+      "description": "Represents a food or drink item on the Savanna Bites menu.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique menu item identifier",
+          "maxLength": 64
+        },
+        "name": {
+          "type": "string",
+          "description": "Food item display name",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "description": {
+          "type": "string",
+          "description": "Culinary description and ingredient summary",
+          "maxLength": 500
+        },
+        "price": {
+          "type": "number",
+          "description": "Price in Nigerian Naira (NGN)"
+        },
+        "category": {
+          "type": "string",
+          "description": "Menu category",
+          "enum": [
+            "Nigerian Dishes",
+            "Rice & Pasta",
+            "Swallow & Soups",
+            "Grills",
+            "Fast Food",
+            "Snacks",
+            "Drinks",
+            "Desserts"
+          ]
+        },
+        "image": {
+          "type": "string",
+          "description": "Image URL of the food dish",
+          "maxLength": 1000
+        },
+        "isAvailable": {
+          "type": "boolean",
+          "description": "Whether the item is currently in stock"
+        },
+        "isPopular": {
+          "type": "boolean",
+          "description": "Featured in popular dishes carousel/section"
+        },
+        "spicyLevel": {
+          "type": "number",
+          "description": "Spiciness rating from 0 (mild) to 3 (extra spicy)"
+        },
+        "preparationTime": {
+          "type": "string",
+          "description": "Estimated prep time, e.g., 20-25 mins",
+          "maxLength": 50
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of last update"
+        }
+      },
+      "required": ["id", "name", "price", "category", "image", "isAvailable"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer food order details and checkout record.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Order reference code, e.g. SB-1092",
+          "maxLength": 64
+        },
+        "customerName": {
+          "type": "string",
+          "description": "Customer full name",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "phone": {
+          "type": "string",
+          "description": "Customer contact phone number",
+          "minLength": 7,
+          "maxLength": 20
+        },
+        "deliveryAddress": {
+          "type": "string",
+          "description": "Delivery street address and landmarks",
+          "minLength": 5,
+          "maxLength": 300
+        },
+        "orderNote": {
+          "type": "string",
+          "description": "Optional preparation or delivery instruction",
+          "maxLength": 500
+        },
+        "items": {
+          "type": "array",
+          "description": "Array of food items ordered"
+        },
+        "subtotal": {
+          "type": "number",
+          "description": "Subtotal in Naira"
+        },
+        "deliveryFee": {
+          "type": "number",
+          "description": "Delivery fee in Naira"
+        },
+        "total": {
+          "type": "number",
+          "description": "Total amount in Naira"
+        },
+        "status": {
+          "type": "string",
+          "description": "Order processing stage",
+          "enum": ["pending", "confirmed", "preparing", "out_for_delivery", "delivered", "cancelled"]
+        },
+        "userId": {
+          "type": "string",
+          "description": "Optional user UID if customer was logged in",
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp of order placement"
+        }
+      },
+      "required": ["id", "customerName", "phone", "deliveryAddress", "items", "total", "status"]
+    },
+    "Reservation": {
+      "title": "Reservation",
+      "description": "Table reservation booking details.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique booking reservation code",
+          "maxLength": 64
+        },
+        "name": {
+          "type": "string",
+          "description": "Primary guest name",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "phone": {
+          "type": "string",
+          "description": "Guest phone number",
+          "minLength": 7,
+          "maxLength": 20
+        },
+        "date": {
+          "type": "string",
+          "description": "Reservation calendar date (YYYY-MM-DD)",
+          "maxLength": 20
+        },
+        "time": {
+          "type": "string",
+          "description": "Reservation time slot (HH:MM)",
+          "maxLength": 20
+        },
+        "guests": {
+          "type": "number",
+          "description": "Number of guests (1 - 50)"
+        },
+        "specialRequest": {
+          "type": "string",
+          "description": "Dietary needs, birthday arrangement, seating preference",
+          "maxLength": 500
+        },
+        "status": {
+          "type": "string",
+          "description": "Booking status",
+          "enum": ["pending", "confirmed", "seated", "cancelled"]
+        },
+        "userId": {
+          "type": "string",
+          "description": "Optional user UID if guest had an account",
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Booking timestamp"
+        }
+      },
+      "required": ["id", "name", "phone", "date", "time", "guests", "status"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "Customer dining experience feedback.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Review document identifier",
+          "maxLength": 64
+        },
+        "customerName": {
+          "type": "string",
+          "description": "Author display name",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "rating": {
+          "type": "number",
+          "description": "Score from 1 to 5 stars"
+        },
+        "review": {
+          "type": "string",
+          "description": "Customer feedback commentary",
+          "minLength": 5,
+          "maxLength": 1000
+        },
+        "date": {
+          "type": "string",
+          "description": "Human readable date string",
+          "maxLength": 50
+        },
+        "verified": {
+          "type": "boolean",
+          "description": "Verified diner badge"
+        },
+        "dishMentioned": {
+          "type": "string",
+          "description": "Dish ordered or reviewed",
+          "maxLength": 100
+        }
+      },
+      "required": ["id", "customerName", "rating", "review", "date"]
+    },
+    "RestaurantSettings": {
+      "title": "RestaurantSettings",
+      "description": "Operational configurations, contact details, and announcements.",
+      "type": "object",
+      "properties": {
+        "restaurantName": {
+          "type": "string",
+          "description": "Business trade name",
+          "maxLength": 100
+        },
+        "tagline": {
+          "type": "string",
+          "description": "Brand slogan",
+          "maxLength": 150
+        },
+        "heroDescription": {
+          "type": "string",
+          "description": "Home hero banner description text",
+          "maxLength": 500
+        },
+        "phone": {
+          "type": "string",
+          "description": "Customer care telephone number",
+          "maxLength": 30
+        },
+        "whatsappNumber": {
+          "type": "string",
+          "description": "International WhatsApp ordering number (e.g. 2348012345678)",
+          "maxLength": 30
+        },
+        "email": {
+          "type": "string",
+          "description": "Official restaurant support email",
+          "maxLength": 100
+        },
+        "address": {
+          "type": "string",
+          "description": "Physical restaurant street address",
+          "maxLength": 200
+        },
+        "openingHours": {
+          "type": "string",
+          "description": "Schedule summary, e.g. Mon-Sun: 9:00 AM - 11:00 PM",
+          "maxLength": 200
+        },
+        "deliveryFee": {
+          "type": "number",
+          "description": "Standard delivery fee in Naira"
+        },
+        "announcement": {
+          "type": "string",
+          "description": "Top bar announcement ticker message",
+          "maxLength": 300
+        }
+      },
+      "required": ["restaurantName", "whatsappNumber", "phone", "email", "address", "openingHours"]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Customer registered profile, saved addresses, and preferences.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth user unique ID",
+          "maxLength": 128
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Customer display name",
+          "maxLength": 100
+        },
+        "email": {
+          "type": "string",
+          "description": "Account email address",
+          "maxLength": 100
+        },
+        "phone": {
+          "type": "string",
+          "description": "Saved delivery phone number",
+          "maxLength": 30
+        },
+        "defaultAddress": {
+          "type": "string",
+          "description": "Primary delivery street address",
+          "maxLength": 300
+        },
+        "role": {
+          "type": "string",
+          "description": "Account role: customer or admin",
+          "enum": ["customer", "admin"]
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Registration date"
+        }
+      },
+      "required": ["uid", "email"]
+    },
+    "ContactMessage": {
+      "title": "ContactMessage",
+      "description": "Inquiries submitted via the Contact page form.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Message ID",
+          "maxLength": 64
+        },
+        "name": {
+          "type": "string",
+          "description": "Sender name",
+          "maxLength": 100
+        },
+        "email": {
+          "type": "string",
+          "description": "Sender email",
+          "maxLength": 100
+        },
+        "phone": {
+          "type": "string",
+          "description": "Sender phone number",
+          "maxLength": 30
+        },
+        "subject": {
+          "type": "string",
+          "description": "Inquiry subject",
+          "maxLength": 150
+        },
+        "message": {
+          "type": "string",
+          "description": "Detailed message body",
+          "maxLength": 1500
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp"
+        },
+        "status": {
+          "type": "string",
+          "description": "Read/unread status",
+          "enum": ["unread", "read", "resolved"]
+        }
+      },
+      "required": ["id", "name", "email", "message", "status"]
+    }
+  },
+  "firestore": {
+    "/menuItems/{itemId}": {
+      "schema": "MenuItem",
+      "description": "Public menu catalog read by diners; managed exclusively by restaurant admin."
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Customer orders placed via checkout; viewable by the order owner or admin."
+    },
+    "/reservations/{reservationId}": {
+      "schema": "Reservation",
+      "description": "Table bookings; created by visitors, manageable by admin."
+    },
+    "/reviews/{reviewId}": {
+      "schema": "Review",
+      "description": "Public dining reviews and ratings; submitted by diners and curated by admin."
+    },
+    "/restaurantSettings/{settingId}": {
+      "schema": "RestaurantSettings",
+      "description": "Singleton configuration document containing business info, contact, and hours."
+    },
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile with saved contact info, order history reference, and roles."
+    },
+    "/contactMessages/{messageId}": {
+      "schema": "ContactMessage",
+      "description": "Contact form submissions from diners."
+    }
+  }
+}

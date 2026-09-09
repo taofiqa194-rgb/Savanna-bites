@@ -1,0 +1,126 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Global Helper Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+    
+    function incoming() {
+      return request.resource.data;
+    }
+    
+    function existing() {
+      return resource.data;
+    }
+    
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'taofiqa194@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+    
+    // 1. Menu Items Catalog (Public read, admin write)
+    match /menuItems/{itemId} {
+      allow read: if true;
+      allow create: if isValidId(itemId) && isAdmin() &&
+        incoming().name is string && incoming().name.size() >= 2 && incoming().name.size() <= 100 &&
+        incoming().price is number && incoming().price >= 0 &&
+        incoming().category is string && incoming().category.size() <= 60 &&
+        incoming().isAvailable is bool;
+      allow update: if isValidId(itemId) && isAdmin();
+      allow delete: if isValidId(itemId) && isAdmin();
+    }
+    
+    // 2. Orders Collection
+    match /orders/{orderId} {
+      allow get: if isValidId(orderId) && (isAdmin() || (isSignedIn() && existing().userId == request.auth.uid));
+      allow list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create: if isValidId(orderId) &&
+        incoming().customerName is string && incoming().customerName.size() >= 2 && incoming().customerName.size() <= 100 &&
+        incoming().phone is string && incoming().phone.size() >= 7 && incoming().phone.size() <= 25 &&
+        incoming().deliveryAddress is string && incoming().deliveryAddress.size() >= 5 && incoming().deliveryAddress.size() <= 300 &&
+        incoming().total is number && incoming().total >= 0 &&
+        incoming().status is string;
+      allow update: if isValidId(orderId) && isAdmin();
+      allow delete: if isValidId(orderId) && isAdmin();
+    }
+    
+    // 3. Reservations Collection
+    match /reservations/{reservationId} {
+      allow get: if isValidId(reservationId) && (isAdmin() || (isSignedIn() && existing().userId == request.auth.uid));
+      allow list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create: if isValidId(reservationId) &&
+        incoming().name is string && incoming().name.size() >= 2 && incoming().name.size() <= 100 &&
+        incoming().phone is string && incoming().phone.size() >= 7 && incoming().phone.size() <= 25 &&
+        incoming().date is string && incoming().time is string &&
+        incoming().guests is number && incoming().guests >= 1 && incoming().guests <= 50;
+      allow update: if isValidId(reservationId) && isAdmin();
+      allow delete: if isValidId(reservationId) && isAdmin();
+    }
+    
+    // 4. Reviews Collection
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if isValidId(reviewId) &&
+        incoming().customerName is string && incoming().customerName.size() >= 2 && incoming().customerName.size() <= 100 &&
+        incoming().rating is number && incoming().rating >= 1 && incoming().rating <= 5 &&
+        incoming().review is string && incoming().review.size() >= 5 && incoming().review.size() <= 1000;
+      allow update: if isValidId(reviewId) && isAdmin();
+      allow delete: if isValidId(reviewId) && isAdmin();
+    }
+    
+    // 5. Restaurant Settings
+    match /restaurantSettings/{settingId} {
+      allow read: if true;
+      allow write: if isValidId(settingId) && isAdmin();
+    }
+    
+    // 6. User Profiles (PII isolation, role protection)
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isValidId(userId) && isOwner(userId) &&
+        incoming().email is string &&
+        (!('role' in incoming()) || incoming().role == 'customer');
+      allow update: if isValidId(userId) && (
+        (isOwner(userId) && !incoming().diff(existing()).affectedKeys().hasAny(['role'])) ||
+        isAdmin()
+      );
+      allow delete: if isValidId(userId) && isAdmin();
+    }
+    
+    // 7. Contact Messages
+    match /contactMessages/{messageId} {
+      allow read: if isAdmin();
+      allow create: if isValidId(messageId) &&
+        incoming().name is string && incoming().name.size() >= 2 && incoming().name.size() <= 100 &&
+        incoming().email is string && incoming().email.size() <= 100 &&
+        incoming().message is string && incoming().message.size() >= 5 && incoming().message.size() <= 1500;
+      allow update, delete: if isValidId(messageId) && isAdmin();
+    }
+    
+    // 8. Admin Verification Store
+    match /admins/{adminId} {
+      allow read: if isSignedIn();
+      allow write: if false; // Provisioned via server or security console
+    }
+  }
+}

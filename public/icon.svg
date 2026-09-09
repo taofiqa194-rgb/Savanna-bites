@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="savannaGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F59E0B" />
+      <stop offset="50%" stop-color="#EA580C" />
+      <stop offset="100%" stop-color="#B45309" />
+    </linearGradient>
+    <radialGradient id="bgGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#27272a" />
+      <stop offset="100%" stop-color="#121212" />
+    </radialGradient>
+  </defs>
+  <!-- Background with subtle border -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
+  <rect width="504" height="504" x="4" y="4" rx="108" fill="none" stroke="#F59E0B" stroke-width="4" stroke-opacity="0.3" />
+  
+  <!-- Silhouette Flame & Bowl / Food Icon -->
+  <g transform="translate(64, 56) scale(0.75)">
+    <!-- Steam / Aroma swirls -->
+    <path d="M 256 90 Q 230 130 256 170 Q 280 210 256 240" fill="none" stroke="#F59E0B" stroke-width="18" stroke-linecap="round" stroke-opacity="0.9" />
+    <path d="M 190 120 Q 170 150 190 180 Q 210 210 190 240" fill="none" stroke="#EA580C" stroke-width="14" stroke-linecap="round" stroke-opacity="0.75" />
+    <path d="M 322 120 Q 342 150 322 180 Q 302 210 322 240" fill="none" stroke="#EA580C" stroke-width="14" stroke-linecap="round" stroke-opacity="0.75" />
+    
+    <!-- Cooking Pot / Bowl -->
+    <path d="M 96 260 C 96 380, 416 380, 416 260 Z" fill="url(#savannaGrad)" />
+    <!-- Bowl Rim -->
+    <ellipse cx="256" cy="260" rx="164" ry="24" fill="#FBBF24" />
+    <ellipse cx="256" cy="260" rx="150" ry="16" fill="#D97706" />
+    
+    <!-- Base stand -->
+    <path d="M 176 370 L 140 430 L 190 430 L 210 376 Z" fill="#92400E" />
+    <path d="M 336 370 L 372 430 L 322 430 L 302 376 Z" fill="#92400E" />
+    <path d="M 230 380 L 230 430 L 282 430 L 282 380 Z" fill="#78350F" />
+    
+    <!-- Acacia Leaf accent (Subtle Green) -->
+    <path d="M 256 195 Q 290 180 305 150 Q 280 180 256 195 Z" fill="#22C55E" />
+    <path d="M 256 195 Q 220 180 205 150 Q 230 180 256 195 Z" fill="#16A34A" />
+  </g>
+  
+  <!-- Text monogram inside icon -->
+  <text x="256" y="460" font-family="'Playfair Display', Georgia, serif" font-weight="700" font-size="44" fill="#FFFBF2" text-anchor="middle" letter-spacing="3">SAVANNA BITES</text>
+</svg>

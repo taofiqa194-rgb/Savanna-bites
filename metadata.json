@@ -1,0 +1,6 @@
+{
+  "name": "Savanna Bites",
+  "description": "Authentic Nigerian and continental restaurant website featuring interactive menu, WhatsApp ordering, table reservations, customer accounts, and admin dashboard.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
