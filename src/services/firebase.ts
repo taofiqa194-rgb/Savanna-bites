@@ -79,52 +79,120 @@ export function handleFirestoreError(
   throw new Error(JSON.stringify(errInfo));
 }
 
-// Retrieve configuration from env or local stored override
+// Canonical Firebase project ID for Savanna Bites
+export const FIREBASE_PROJECT_ID = 'savanna-bites';
+
+// Canonical Firebase Web Configuration
+export const DEFAULT_FIREBASE_CONFIG = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyBBM6HwNzBy7ZRIM_TrjK4yvDlZ1_djXvA',
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'savanna-bites.firebaseapp.com',
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'savanna-bites.firebasestorage.app',
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '83343260563',
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:83343260563:web:6333a299072b722a418666',
+};
+
+// Retrieve configuration from env or local stored override with canonical fallback
 export function getFirebaseConfig() {
   const storedConfig = typeof window !== 'undefined' ? localStorage.getItem('savanna_firebase_config') : null;
   if (storedConfig) {
     try {
       const parsed = JSON.parse(storedConfig);
       if (parsed.apiKey && parsed.projectId) {
-        return parsed;
+        return {
+          ...DEFAULT_FIREBASE_CONFIG,
+          ...parsed,
+          projectId: parsed.projectId || FIREBASE_PROJECT_ID,
+        };
       }
     } catch {
-      // ignore
+      // ignore JSON parse errors
     }
   }
 
-  const envConfig = {
-    apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '',
-    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || '',
-    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || '',
-    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || '',
-    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
-    appId: import.meta.env.VITE_FIREBASE_APP_ID || '',
+  return {
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY || DEFAULT_FIREBASE_CONFIG.apiKey,
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || DEFAULT_FIREBASE_CONFIG.authDomain,
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || DEFAULT_FIREBASE_CONFIG.projectId,
+    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || DEFAULT_FIREBASE_CONFIG.storageBucket,
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || DEFAULT_FIREBASE_CONFIG.messagingSenderId,
+    appId: import.meta.env.VITE_FIREBASE_APP_ID || DEFAULT_FIREBASE_CONFIG.appId,
   };
-
-  return envConfig;
 }
 
-const config = getFirebaseConfig();
-export const isFirebaseConfigured = Boolean(config.apiKey && config.projectId);
+export const firebaseConfig = getFirebaseConfig();
+export const isFirebaseConfigured = Boolean(firebaseConfig.apiKey && firebaseConfig.projectId);
 
-let appInstance: FirebaseApp | null = null;
-let authInstance: Auth | null = null;
-let dbInstance: Firestore | null = null;
+let appInstance: FirebaseApp;
+try {
+  appInstance = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+} catch (err) {
+  console.warn('Initializing Firebase fallback app:', err);
+  appInstance = initializeApp(DEFAULT_FIREBASE_CONFIG, 'savanna-bites-app');
+}
 
-if (isFirebaseConfigured) {
-  try {
-    appInstance = !getApps().length ? initializeApp(config) : getApp();
-    authInstance = getAuth(appInstance);
-    dbInstance = getFirestore(appInstance);
-  } catch (err) {
-    console.warn('Firebase initialization notice:', err);
+export const firebaseApp: FirebaseApp = appInstance;
+export const auth: Auth = getAuth(firebaseApp);
+export const db: Firestore = getFirestore(firebaseApp);
+
+/**
+ * Maps Firebase Auth error codes to user-friendly, descriptive messages
+ */
+export function formatFirebaseAuthError(err: unknown): string {
+  const errorObj = err as { code?: string; message?: string };
+  const code = errorObj?.code || '';
+  const message = errorObj?.message || String(err);
+
+  if (
+    code === 'auth/invalid-credential' ||
+    message.includes('auth/invalid-credential') ||
+    message.includes('INVALID_LOGIN_CREDENTIALS')
+  ) {
+    return 'Invalid credentials provided. Please verify the email and password and try again.';
   }
-}
 
-export const firebaseApp = appInstance;
-export const auth = authInstance;
-export const db = dbInstance;
+  if (
+    code === 'auth/user-not-found' ||
+    message.includes('auth/user-not-found') ||
+    message.includes('EMAIL_NOT_FOUND')
+  ) {
+    return 'Administrator account not found in Firebase Authentication for savanna-bites.';
+  }
+
+  if (
+    code === 'auth/wrong-password' ||
+    message.includes('auth/wrong-password') ||
+    message.includes('INVALID_PASSWORD')
+  ) {
+    return 'Incorrect administrator password. Please try again or use Forgot Password.';
+  }
+
+  if (
+    code === 'auth/configuration-not-found' ||
+    message.includes('auth/configuration-not-found') ||
+    message.includes('CONFIGURATION_NOT_FOUND')
+  ) {
+    return 'Firebase Authentication configuration not found for project "savanna-bites". Please ensure Email/Password provider is enabled in Firebase Console (Authentication > Sign-in method > Email/Password).';
+  }
+
+  if (
+    code === 'auth/too-many-requests' ||
+    message.includes('auth/too-many-requests') ||
+    message.includes('TOO_MANY_ATTEMPTS_TRY_LATER')
+  ) {
+    return 'Access temporarily blocked due to too many failed login attempts. Please reset your password or try again later.';
+  }
+
+  if (code === 'auth/email-already-in-use' || message.includes('auth/email-already-in-use')) {
+    return 'An account with this email address already exists in Firebase Authentication.';
+  }
+
+  if (code === 'auth/weak-password' || message.includes('auth/weak-password')) {
+    return 'Password is too weak. Please use at least 6 characters.';
+  }
+
+  return message || 'Authentication failed. Please check your credentials and try again.';
+}
 
 /**
  * Test server connectivity to Firestore as recommended by skill
@@ -138,14 +206,14 @@ export async function testFirestoreConnection(): Promise<{ success: boolean; mes
   }
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
-    return { success: true, message: 'Successfully connected to Firebase Firestore!' };
+    return { success: true, message: 'Successfully connected to Firebase Firestore project "savanna-bites"!' };
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
     if (msg.includes('the client is offline')) {
       return { success: false, message: 'Firestore client is offline or network is blocked.' };
     }
     // Permission denied is also a proof of connectivity to the server!
-    return { success: true, message: 'Server reached (' + msg + ')' };
+    return { success: true, message: 'Firebase reached (' + msg + ')' };
   }
 }
 
@@ -153,10 +221,10 @@ export async function testFirestoreConnection(): Promise<{ success: boolean; mes
  * Send password reset email via Firebase Authentication
  */
 export async function resetPassword(email: string): Promise<{ success: boolean; message: string }> {
-  if (!auth || !isFirebaseConfigured) {
+  if (!auth) {
     return {
       success: false,
-      message: 'Firebase Authentication is not initialized. Please configure Firebase credentials in Settings.',
+      message: 'Firebase Authentication is not initialized.',
     };
   }
   try {
@@ -166,12 +234,10 @@ export async function resetPassword(email: string): Promise<{ success: boolean; 
       message: `Password reset link has been sent to ${email}. Please check your inbox or spam folder.`,
     };
   } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error);
+    const msg = formatFirebaseAuthError(error);
     return {
       success: false,
-      message: msg.includes('user-not-found')
-        ? 'No user account found with this email address.'
-        : `Password reset error: ${msg}`,
+      message: msg,
     };
   }
 }

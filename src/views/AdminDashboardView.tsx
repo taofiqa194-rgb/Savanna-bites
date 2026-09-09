@@ -8,7 +8,7 @@ import {
   ReservationStatus,
 } from '../types';
 import { formatNaira, ADMIN_CONFIG, BANK_PAYMENT_DETAILS } from '../config/restaurantConfig';
-import { testFirestoreConnection, isFirebaseConfigured } from '../services/firebase';
+import { testFirestoreConnection, isFirebaseConfigured, FIREBASE_PROJECT_ID } from '../services/firebase';
 import {
   ShieldCheck,
   Plus,
@@ -73,6 +73,7 @@ export const AdminDashboardView: React.FC = () => {
   const [adminEmail, setAdminEmail] = useState(ADMIN_CONFIG.email);
   const [adminPass, setAdminPass] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
 
   // Forgot Password modal state
   const [forgotModalOpen, setForgotModalOpen] = useState(false);
@@ -118,12 +119,17 @@ export const AdminDashboardView: React.FC = () => {
   // Handle admin login
   const handleAdminAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoginError(null);
     if (!adminPass) {
+      setLoginError('Please enter your administrator password');
       addToast('Please enter your administrator password', 'error');
       return;
     }
     setLoginLoading(true);
-    await loginAdmin(adminEmail, adminPass);
+    const success = await loginAdmin(adminEmail, adminPass);
+    if (!success) {
+      setLoginError('Authentication failed. Please check credentials or reset password.');
+    }
     setLoginLoading(false);
   };
 
@@ -231,7 +237,23 @@ export const AdminDashboardView: React.FC = () => {
             <p className="text-xs text-zinc-400">
               Secure restaurant control panel for orders, verification, and menu management.
             </p>
+            <div className="pt-1 flex items-center justify-center">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-950 border border-zinc-800 text-[11px] text-zinc-300">
+                <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                <span>Firebase Project: <strong className="text-amber-400 font-mono">{FIREBASE_PROJECT_ID}</strong></span>
+              </span>
+            </div>
           </div>
+
+          {loginError && (
+            <div className="p-3.5 rounded-xl bg-red-950/40 border border-red-800 text-xs text-red-200 space-y-1">
+              <div className="font-semibold flex items-center gap-1.5 text-red-400">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>Authentication Notice</span>
+              </div>
+              <p className="leading-relaxed text-[11px]">{loginError}</p>
+            </div>
+          )}
 
           <form onSubmit={handleAdminAuth} className="space-y-4">
             <div>

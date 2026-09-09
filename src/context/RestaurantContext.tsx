@@ -29,6 +29,8 @@ import {
   db,
   isFirebaseConfigured,
   resetPassword,
+  formatFirebaseAuthError,
+  FIREBASE_PROJECT_ID,
   handleFirestoreError,
   OperationType,
 } from '../services/firebase';
@@ -576,74 +578,51 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   // Authentication Handlers
   const loginCustomer = async (email: string, pass: string): Promise<boolean> => {
-    if (auth && isFirebaseConfigured) {
-      try {
-        const cred = await signInWithEmailAndPassword(auth, email, pass);
-        const isUserAdmin = cred.user.email === 'admin@savannabites.ng';
-        setUser({
-          uid: cred.user.uid,
-          displayName: cred.user.displayName || email.split('@')[0],
-          email: cred.user.email || email,
-          role: isUserAdmin ? 'admin' : 'customer',
-          createdAt: new Date().toISOString(),
-        });
-        addToast(`Welcome back, ${cred.user.displayName || email}!`, 'success');
-        return true;
-      } catch (err: unknown) {
-        const errorMsg = err instanceof Error ? err.message : 'Invalid credentials';
-        addToast(`Login error: ${errorMsg}`, 'error');
-        return false;
-      }
-    } else {
-      // Demo authentication mode
-      const isUserAdmin = email.toLowerCase() === 'admin@savannabites.ng';
-      const demoUser: UserProfile = {
-        uid: 'demo-' + Math.random().toString(36).substring(2, 9),
-        displayName: email.split('@')[0].toUpperCase(),
-        email: email,
+    if (!auth) {
+      addToast('Firebase Authentication is not available. Please verify Firebase setup.', 'error');
+      return false;
+    }
+    try {
+      const cred = await signInWithEmailAndPassword(auth, email.trim(), pass);
+      const isUserAdmin = cred.user.email?.toLowerCase() === ADMIN_CONFIG.email.toLowerCase();
+      setUser({
+        uid: cred.user.uid,
+        displayName: cred.user.displayName || email.split('@')[0],
+        email: cred.user.email || email,
         role: isUserAdmin ? 'admin' : 'customer',
         createdAt: new Date().toISOString(),
-      };
-      setUser(demoUser);
-      addToast(`Logged in successfully as ${demoUser.displayName} (${demoUser.role})`, 'success');
+      });
+      addToast(`Welcome back, ${cred.user.displayName || email}!`, 'success');
       return true;
+    } catch (err: unknown) {
+      const errorMsg = formatFirebaseAuthError(err);
+      addToast(`Login error: ${errorMsg}`, 'error');
+      return false;
     }
   };
 
   const loginWithGoogle = async (): Promise<boolean> => {
-    if (auth && isFirebaseConfigured) {
-      try {
-        const provider = new GoogleAuthProvider();
-        const cred = await signInWithPopup(auth, provider);
-        const isUserAdmin = cred.user.email === 'admin@savannabites.ng';
-        setUser({
-          uid: cred.user.uid,
-          displayName: cred.user.displayName || 'Google Diner',
-          email: cred.user.email || '',
-          role: isUserAdmin ? 'admin' : 'customer',
-          createdAt: new Date().toISOString(),
-        });
-        addToast(`Signed in with Google as ${cred.user.displayName}`, 'success');
-        return true;
-      } catch (err: unknown) {
-        const errorMsg = err instanceof Error ? err.message : 'Google sign-in cancelled';
-        addToast(`Google Sign-In: ${errorMsg}`, 'error');
-        return false;
-      }
-    } else {
-      // Simulated Google sign in
-      const mockGoogleUser: UserProfile = {
-        uid: 'g-demo-' + Date.now(),
-        displayName: 'Adebola Williams',
-        email: 'adebola.williams@gmail.com',
-        phone: '+234 809 123 4567',
-        defaultAddress: '15 Bishop Aboyade Cole, Victoria Island, Lagos',
-        role: 'customer',
+    if (!auth) {
+      addToast('Firebase Authentication is not available.', 'error');
+      return false;
+    }
+    try {
+      const provider = new GoogleAuthProvider();
+      const cred = await signInWithPopup(auth, provider);
+      const isUserAdmin = cred.user.email?.toLowerCase() === ADMIN_CONFIG.email.toLowerCase();
+      setUser({
+        uid: cred.user.uid,
+        displayName: cred.user.displayName || 'Google Diner',
+        email: cred.user.email || '',
+        role: isUserAdmin ? 'admin' : 'customer',
         createdAt: new Date().toISOString(),
-      };
-      setUser(mockGoogleUser);
-      addToast(`Signed in with Google as ${mockGoogleUser.displayName}`, 'success');
+      });
+      addToast(`Signed in with Google as ${cred.user.displayName}`, 'success');
       return true;
+    } catch (err: unknown) {
+      const errorMsg = formatFirebaseAuthError(err);
+      addToast(`Google Sign-In: ${errorMsg}`, 'error');
+      return false;
     }
   };
 
@@ -654,33 +633,14 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     defaultAddress?: string;
     password?: string;
   }): Promise<boolean> => {
-    if (auth && isFirebaseConfigured && profile.password) {
-      try {
-        const cred = await createUserWithEmailAndPassword(auth, profile.email, profile.password);
-        const newUserProfile: UserProfile = {
-          uid: cred.user.uid,
-          displayName: profile.displayName,
-          email: profile.email,
-          phone: profile.phone,
-          defaultAddress: profile.defaultAddress,
-          role: 'customer',
-          createdAt: new Date().toISOString(),
-        };
-        setUser(newUserProfile);
-        if (db) {
-          await setDoc(doc(db, 'users', cred.user.uid), newUserProfile);
-        }
-        addToast(`Welcome to Savanna Bites, ${profile.displayName}!`, 'success');
-        return true;
-      } catch (err: unknown) {
-        const errorMsg = err instanceof Error ? err.message : 'Registration failed';
-        addToast(`Registration error: ${errorMsg}`, 'error');
-        return false;
-      }
-    } else {
-      // Demo local account registration
+    if (!auth || !profile.password) {
+      addToast('Password is required for registration.', 'error');
+      return false;
+    }
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, profile.email.trim(), profile.password);
       const newUserProfile: UserProfile = {
-        uid: 'user-' + Date.now(),
+        uid: cred.user.uid,
         displayName: profile.displayName,
         email: profile.email,
         phone: profile.phone,
@@ -689,8 +649,15 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         createdAt: new Date().toISOString(),
       };
       setUser(newUserProfile);
-      addToast(`Account created! Welcome, ${profile.displayName}`, 'success');
+      if (db) {
+        await setDoc(doc(db, 'users', cred.user.uid), newUserProfile);
+      }
+      addToast(`Welcome to Savanna Bites, ${profile.displayName}!`, 'success');
       return true;
+    } catch (err: unknown) {
+      const errorMsg = formatFirebaseAuthError(err);
+      addToast(`Registration error: ${errorMsg}`, 'error');
+      return false;
     }
   };
 
@@ -703,8 +670,8 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       return false;
     }
 
-    if (!auth || !isFirebaseConfigured) {
-      addToast('Firebase Authentication is required for administrator login. Please verify Firebase setup.', 'error');
+    if (!auth) {
+      addToast('Firebase Authentication is not initialized for project "savanna-bites".', 'error');
       return false;
     }
 
@@ -721,13 +688,42 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       addToast('Administrator authenticated successfully via Firebase!', 'success');
       return true;
     } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : 'Invalid password';
-      if (errorMsg.includes('invalid-credential') || errorMsg.includes('wrong-password')) {
-        addToast('Invalid administrator password. Please try again or use Forgot Password.', 'error');
-      } else if (errorMsg.includes('user-not-found')) {
-        addToast(`Admin account (${ADMIN_CONFIG.email}) not found in Firebase Authentication.`, 'error');
+      const fbError = err as { code?: string; message?: string };
+      const code = fbError?.code || '';
+      const message = fbError?.message || String(err);
+
+      if (
+        code === 'auth/invalid-credential' ||
+        message.includes('auth/invalid-credential') ||
+        message.includes('INVALID_LOGIN_CREDENTIALS')
+      ) {
+        addToast('Invalid credentials. Please verify your administrator password.', 'error');
+      } else if (
+        code === 'auth/user-not-found' ||
+        message.includes('auth/user-not-found') ||
+        message.includes('EMAIL_NOT_FOUND')
+      ) {
+        addToast(`Admin account (${ADMIN_CONFIG.email}) was not found in Firebase Authentication for project "${FIREBASE_PROJECT_ID}".`, 'error');
+      } else if (
+        code === 'auth/wrong-password' ||
+        message.includes('auth/wrong-password') ||
+        message.includes('INVALID_PASSWORD')
+      ) {
+        addToast('Incorrect administrator password. Please try again or use Forgot Password.', 'error');
+      } else if (
+        code === 'auth/configuration-not-found' ||
+        message.includes('auth/configuration-not-found') ||
+        message.includes('CONFIGURATION_NOT_FOUND')
+      ) {
+        addToast(`Firebase Authentication configuration not found for project "${FIREBASE_PROJECT_ID}". Please ensure Email/Password provider is enabled in Firebase Console.`, 'error');
+      } else if (
+        code === 'auth/too-many-requests' ||
+        message.includes('auth/too-many-requests') ||
+        message.includes('TOO_MANY_ATTEMPTS_TRY_LATER')
+      ) {
+        addToast('Access temporarily blocked due to too many failed login attempts. Please reset your password or try again later.', 'error');
       } else {
-        addToast(`Authentication failed: ${errorMsg}`, 'error');
+        addToast(`Authentication failed: ${message}`, 'error');
       }
       return false;
     }
